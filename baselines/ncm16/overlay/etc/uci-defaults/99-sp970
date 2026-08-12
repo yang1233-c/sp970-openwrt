@@ -1,0 +1,12 @@
+#!/bin/sh
+# A / SP970_MB_V02 first-boot defaults. No delayed network restart: the AP is
+# brought up by netifd immediately so the 10 s beacon target is measurable.
+
+uci -q set system.@system[0].hostname='SP970-CAR'
+uci -q set wireless.radio0.disabled='0'
+uci -q set wireless.radio0.beacon_int='100'
+uci -q set wireless.radio0.dtim_period='2'
+uci -q commit system
+uci -q commit wireless
+
+exit 0

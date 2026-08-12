@@ -1,0 +1,31 @@
+config device
+	option name 'br-lan'
+	option type 'bridge'
+
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'static'
+	option ipaddr '192.168.0.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+	option delegate '0'
+
+# RAM diagnostic management link created by sp970-usb-gadget.
+config interface 'usbmgmt'
+	option device 'usb0'
+	option proto 'static'
+	option ipaddr '169.254.41.129'
+	option netmask '255.255.0.0'
+	option auto '1'
+
+# Cellular is deliberately dormant in the first RAM image.  The first probe
+# records BAM-DMUX/WWAN/QRTR names before a persistent image chooses a client.
+config interface 'cellular'
+	option proto 'none'
+	option auto '0'
+
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'

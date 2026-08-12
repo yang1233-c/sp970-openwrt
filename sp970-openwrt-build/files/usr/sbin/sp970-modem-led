@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Keep the modem online.  The single board-wide sp970-led-state daemon owns
+# all physical LEDs and reads the same QMI endpoint for SIM/network state.
+qmi=/dev/wwan0qmi0
+while [ ! -e "$qmi" ]; do
+	sleep 1
+done
+
+while true; do
+	mode="$(qmicli -d "$qmi" --dms-get-operating-mode 2>&1 || true)"
+	if ! printf '%s\n' "$mode" | grep -q "Mode: 'online'"; then
+		qmicli -d "$qmi" --dms-set-operating-mode=online >/tmp/qmi-set-online.log 2>&1 || true
+	fi
+	sleep 30
+done

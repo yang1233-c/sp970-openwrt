@@ -1,0 +1,3 @@
+#!/bin/sh
+# Regular rc.d wrapper retained in the source overlay for Windows/CPIO builds.
+/etc/init.d/sp970-led-state start

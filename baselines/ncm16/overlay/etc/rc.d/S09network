@@ -1,0 +1,16 @@
+#!/bin/sh
+
+case "$1" in
+	boot|start)
+		/etc/init.d/network "$@"
+		# Wait for netifd without an arbitrary timer, then enable the already
+		# provisioned radio.  Calling /sbin/wifi up here would first disable and
+		# reload the radio, causing a second setup cycle.
+		ubus wait_for network.wireless
+		ubus call network.wireless up >/dev/null 2>&1 || true
+		exit 0
+		;;
+	*)
+		exec /etc/init.d/network "$@"
+		;;
+esac

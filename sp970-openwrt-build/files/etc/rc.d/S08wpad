@@ -1,0 +1,6 @@
+#!/bin/sh
+echo '<6>sp970-gate: S08_WPAD_ENTER' >/dev/kmsg
+/etc/init.d/wpad "$@"
+rc=$?
+echo '<6>sp970-gate: S08_WPAD_EXIT' >/dev/kmsg
+exit "$rc"

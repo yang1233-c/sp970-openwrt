@@ -1,0 +1,20 @@
+#!/bin/sh
+
+case "$1" in
+	boot|start)
+		echo '<6>sp970-gate: S09_NETWORK_ENTER' >/dev/kmsg
+		/etc/init.d/network "$@"
+		echo '<6>sp970-gate: NETWORK_START_RETURN' >/dev/kmsg
+		# Wait for netifd without an arbitrary timer, then enable the already
+		# provisioned radio.  Calling /sbin/wifi up here would first disable and
+		# reload the radio, causing a second setup cycle.
+		ubus wait_for network.wireless
+		echo '<6>sp970-gate: WIRELESS_OBJECT_READY' >/dev/kmsg
+		ubus call network.wireless up >/dev/null 2>&1 || true
+		echo '<6>sp970-gate: WIRELESS_UP_RETURN' >/dev/kmsg
+		exit 0
+		;;
+	*)
+		exec /etc/init.d/network "$@"
+		;;
+esac

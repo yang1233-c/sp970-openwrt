@@ -1,0 +1,36 @@
+config device
+	option name 'br-lan'
+	option type 'bridge'
+
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'static'
+	option ipaddr '192.168.0.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+	option delegate '0'
+
+# RAM diagnostic management link created by sp970-usb-gadget.
+config interface 'usbmgmt'
+	option device 'usb0'
+	option proto 'static'
+	option ipaddr '169.254.41.129'
+	option netmask '255.255.0.0'
+	option auto '1'
+
+# SP970 BAM-DMUX cellular path.  The protocol activates the slot-1 USIM,
+# negotiates Raw-IP, starts one long-lived WDS client and publishes route/DNS.
+config interface 'cellular'
+	option proto 'q410qmi'
+	option device '/dev/wwan0qmi0'
+	option data_device 'wwan0'
+	option apn 'cbnet'
+	option aid 'A0000000871002FF86FFFF89FFFFFFFF'
+	option metric '10'
+	option auto '1'
+
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'

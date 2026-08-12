@@ -1,0 +1,6 @@
+# Preserved-GPT boot profiles (copied from facts/A-SP970-gpt.json).
+# These are documentation inputs for a later bootloader/image integration;
+# they do not authorize a partition write.
+system_root=root=PARTUUID=221d96c0-58b2-7008-8810-332c39e879df rootwait rw
+userdata_overlay=overlayfs:/dev/disk/by-partuuid/2200ec70-9c9d-f4ce-5b2a-b462675c347a
+boot_partition=PARTUUID=ec0cfb33-0117-7726-757e-b62f09273f46 size_bytes=16777216

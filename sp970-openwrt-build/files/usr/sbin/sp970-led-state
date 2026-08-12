@@ -1,0 +1,251 @@
+#!/bin/sh
+# SP970 three-colour status policy.
+# Physical outputs: GPIO9 red, GPIO10 green, GPIO28 blue (active high).
+# GPIO114 / sim:sel is a board control and must never be used as an LED.
+
+RED=/sys/class/leds/red:power
+GREEN=/sys/class/leds/green:wlan
+BLUE=/sys/class/leds/blue:wan
+STATE_FILE=/run/sp970-led-state
+TARGET_SSID=${SP970_TARGET_SSID:-SP970-CAR}
+
+active_trigger() {
+	[ -r "$1/trigger" ] || return 1
+	grep -q "\[$2\]" "$1/trigger" 2>/dev/null
+}
+
+write_if_changed() {
+	[ -w "$1" ] || return 0
+	current=$(cat "$1" 2>/dev/null)
+	[ "$current" = "$2" ] || printf '%s\n' "$2" >"$1"
+}
+
+led_solid() {
+	led=$1
+	value=$2
+	[ -d "$led" ] || return 0
+	active_trigger "$led" none || printf '%s\n' none >"$led/trigger"
+	write_if_changed "$led/brightness" "$value"
+}
+
+led_trigger() {
+	led=$1
+	trigger=$2
+	[ -d "$led" ] || return 0
+	active_trigger "$led" "$trigger" || printf '%s\n' "$trigger" >"$led/trigger"
+}
+
+led_timer() {
+	led=$1
+	on_ms=$2
+	off_ms=$3
+	[ -d "$led" ] || return 0
+	active_trigger "$led" timer || printf '%s\n' timer >"$led/trigger"
+	write_if_changed "$led/delay_on" "$on_ms"
+	write_if_changed "$led/delay_off" "$off_ms"
+}
+
+detect_wifi() {
+	WIFI_STATE=absent
+	if command -v iw >/dev/null 2>&1 && \
+		iw dev 2>/dev/null | grep -Fq "ssid $TARGET_SSID"; then
+		WIFI_STATE=ap_ready
+	elif [ -e /sys/class/ieee80211/phy0 ]; then
+		WIFI_STATE=starting
+	fi
+}
+
+find_cell_interface() {
+	CELL_IF=
+	for candidate in wwan0 rmnet_data0 rmnet0 usb1 usb2; do
+		if [ -e "/sys/class/net/$candidate" ]; then
+			CELL_IF=$candidate
+			return
+		fi
+	done
+}
+
+has_default_route() {
+	[ -n "$CELL_IF" ] || return 1
+	command -v ip >/dev/null 2>&1 || return 1
+	ip route show default 2>/dev/null | grep -q "dev $CELL_IF\( \|$\)"
+}
+
+mpss_running() {
+	for rp in /sys/class/remoteproc/remoteproc*; do
+		[ -r "$rp/name" ] || continue
+		name=$(cat "$rp/name" 2>/dev/null)
+		case "$name" in
+			*4080000.remoteproc*|*mpss*|*modem*)
+				[ "$(cat "$rp/state" 2>/dev/null)" = running ] && return 0
+				;;
+		esac
+	done
+	return 1
+}
+
+detect_modemmanager() {
+	command -v mmcli >/dev/null 2>&1 || return 1
+	mm_list=$(mmcli -L 2>/dev/null) || return 1
+	echo "$mm_list" | grep -q '/Modem/' || return 1
+
+	CELL_SOURCE=modemmanager
+	CELL_STATE=searching
+	SIM_STATE=absent
+	mm_info=$(mmcli -m any -K 2>/dev/null)
+
+	echo "$mm_info" | grep -Eq 'modem\.generic\.sim.*(/SIM/|/SIM[0-9]|/org/)' && SIM_STATE=present
+	echo "$mm_info" | grep -Eqi 'modem\.generic\.state.*(locked|failed)' && SIM_STATE=locked
+	echo "$mm_info" | grep -Eqi "modem\.3gpp\.registration-state[^:]*:[[:space:]]*['\"]?(home|roaming|registered)['\"]?[[:space:]]*$" && CELL_STATE=registered_no_data
+	echo "$mm_info" | grep -Eqi 'modem\.generic\.state.*connected' && CELL_STATE=connected
+	has_default_route && CELL_STATE=connected
+
+	[ "$SIM_STATE" = absent ] && CELL_STATE=sim_absent
+	[ "$SIM_STATE" = locked ] && CELL_STATE=sim_locked
+	return 0
+}
+
+detect_uqmi() {
+	command -v uqmi >/dev/null 2>&1 || return 1
+	qmi_dev=
+	for device in /dev/cdc-wdm*; do
+		[ -c "$device" ] || continue
+		qmi_dev=$device
+		break
+	done
+	[ -n "$qmi_dev" ] || return 1
+
+	CELL_SOURCE=uqmi
+	CELL_STATE=searching
+	SIM_STATE=present
+	pin_state=$(uqmi -d "$qmi_dev" --get-pin-status 2>/dev/null)
+	echo "$pin_state" | grep -Eqi '(not.?present|absent)' && SIM_STATE=absent
+	echo "$pin_state" | grep -Eqi '(not.?verified|blocked|locked)' && SIM_STATE=locked
+	serving=$(uqmi -d "$qmi_dev" --get-serving-system 2>/dev/null)
+	echo "$serving" | grep -Eqi '"registration"[[:space:]]*:[[:space:]]*"(registered|home|roaming)"' && CELL_STATE=registered_no_data
+	has_default_route && CELL_STATE=connected
+
+	[ "$SIM_STATE" = absent ] && CELL_STATE=sim_absent
+	[ "$SIM_STATE" = locked ] && CELL_STATE=sim_locked
+	return 0
+}
+
+detect_qmicli() {
+	command -v qmicli >/dev/null 2>&1 || return 1
+	qmi_dev=/dev/wwan0qmi0
+	[ -c "$qmi_dev" ] || return 1
+
+	CELL_SOURCE=qmicli
+	CELL_STATE=searching
+	SIM_STATE=unknown
+	card=$(qmicli -d "$qmi_dev" --uim-get-card-status 2>/dev/null)
+	case "$card" in
+		*"Card state: 'present'"*) SIM_STATE=present ;;
+		*"no-atr-received"*|*"Card state: 'absent'"*|*"Card state: 'error"*)
+			SIM_STATE=absent
+			CELL_STATE=sim_absent
+			return 0
+			;;
+	esac
+
+	serving=$(qmicli -d "$qmi_dev" --nas-get-serving-system 2>/dev/null)
+	echo "$serving" | grep -Eqi "Registration state:[[:space:]]*'(registered|home|roaming)'[[:space:]]*$" && CELL_STATE=registered_no_data
+	has_default_route && CELL_STATE=connected
+	return 0
+}
+
+detect_q410qmi() {
+	state_file=/run/sp970-cellular-state
+	[ "$(uci -q get network.cellular.proto 2>/dev/null)" = q410qmi ] || return 1
+	CELL_SOURCE=q410qmi
+	CELL_STATE=searching
+	SIM_STATE=unknown
+	if [ -s "$state_file" ] && grep -qx 'STATE=connected' "$state_file"; then
+		CELL_STATE=connected
+		SIM_STATE=present
+	fi
+	return 0
+}
+
+detect_cellular() {
+	CELL_SOURCE=none
+	CELL_STATE=modem_absent
+	SIM_STATE=unknown
+	find_cell_interface
+
+	detect_q410qmi && return
+	detect_modemmanager && return
+	detect_uqmi && return
+
+	if mpss_running; then
+		CELL_SOURCE=remoteproc
+		CELL_STATE=searching
+		SIM_STATE=unknown
+	fi
+
+	if [ -n "$CELL_IF" ]; then
+		CELL_SOURCE=netdev
+		CELL_STATE=searching
+		SIM_STATE=unknown
+		has_default_route && CELL_STATE=connected
+	fi
+}
+
+apply_policy() {
+	# Red heartbeat means Linux/procd and the policy daemon are alive.
+	led_trigger "$RED" heartbeat
+
+	case "$WIFI_STATE" in
+		ap_ready) led_solid "$GREEN" 1 ;;
+		starting) led_timer "$GREEN" 800 800 ;;
+		*) led_solid "$GREEN" 0 ;;
+	esac
+
+	case "$CELL_STATE" in
+		connected) led_solid "$BLUE" 1 ;;
+		registered_no_data) led_timer "$BLUE" 200 200 ;;
+		searching) led_timer "$BLUE" 800 800 ;;
+		sim_locked) led_timer "$BLUE" 100 1900 ;;
+		*) led_solid "$BLUE" 0 ;;
+	esac
+}
+
+write_state() {
+	[ -d /run ] || mkdir -p /run
+	tmp="${STATE_FILE}.$$"
+	{
+		printf 'schema=1\n'
+		printf 'epoch=%s\n' "$(date +%s)"
+		printf 'system=running\n'
+		printf 'wifi=%s\n' "$WIFI_STATE"
+		printf 'cellular=%s\n' "$CELL_STATE"
+		printf 'sim=%s\n' "$SIM_STATE"
+		printf 'cell_interface=%s\n' "${CELL_IF:-none}"
+		printf 'cell_source=%s\n' "$CELL_SOURCE"
+	} >"$tmp"
+	mv "$tmp" "$STATE_FILE"
+}
+
+run_once() {
+	detect_wifi
+	detect_cellular
+	apply_policy
+	write_state
+}
+
+case "${1:---once}" in
+	--once)
+		run_once
+		;;
+	--daemon)
+		trap 'exit 0' INT TERM
+		while :; do
+			run_once
+			sleep 2
+		done
+		;;
+	*)
+		printf 'usage: %s [--once|--daemon]\n' "$0" >&2
+		exit 2
+		;;
+esac

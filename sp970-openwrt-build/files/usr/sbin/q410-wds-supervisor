@@ -1,0 +1,40 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+set -u
+
+DEVICE="${1:-/dev/wwan0qmi0}"
+APN="${2:-cbnet}"
+BIN=/usr/sbin/q410-qmi-wds-connect
+STATE=/tmp/q410-wds-ready.env
+child=
+stopping=0
+
+stop_supervisor() {
+	stopping=1
+	if [ -n "$child" ] && kill -0 "$child" 2>/dev/null; then
+		kill -TERM "$child" 2>/dev/null || true
+		wait "$child" 2>/dev/null || true
+	fi
+	rm -f "$STATE"
+	exit 0
+}
+
+trap stop_supervisor INT TERM
+
+attempt=1
+delay=2
+while :; do
+	rm -f "$STATE"
+	echo "supervisor=starting attempt=$attempt apn=$APN"
+	"$BIN" "$DEVICE" "$APN" &
+	child=$!
+	wait "$child"
+	rc=$?
+	child=
+	[ "$stopping" -eq 0 ] || exit 0
+	rm -f "$STATE"
+	echo "supervisor=retry attempt=$attempt exit=$rc delay=$delay"
+	sleep "$delay"
+	attempt=$((attempt + 1))
+	[ "$delay" -ge 10 ] || delay=$((delay + 2))
+done

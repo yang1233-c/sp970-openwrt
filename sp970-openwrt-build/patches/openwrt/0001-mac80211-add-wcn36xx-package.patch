@@ -1,0 +1,41 @@
+--- a/package/kernel/mac80211/Makefile
++++ b/package/kernel/mac80211/Makefile
+@@ -25,7 +25,7 @@
+ PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
+ 
+ PKG_DRIVERS = \
+-	mac80211-hwsim \
++	mac80211-hwsim wcn36xx \
+ 	mt7601u \
+ 	rsi91x rsi91x-usb rsi91x-sdio\
+ 	wlcore wl12xx wl18xx
+@@ -85,6 +85,7 @@
+ config-$(CONFIG_PACKAGE_CFG80211_TESTMODE) += NL80211_TESTMODE
+ 
+ config-$(call config_package,mac80211,$(ALL_VARIANTS)) += MAC80211
++config-$(call config_package,wcn36xx) += WCN36XX
+ config-$(CONFIG_PACKAGE_MAC80211_MESH) += MAC80211_MESH
+ 
+ include ath.mk
+--- a/package/kernel/mac80211/ath.mk
++++ b/package/kernel/mac80211/ath.mk
+@@ -267,6 +267,19 @@
+ Atheros USB AR9271 and AR7010 family of chipsets.
+ endef
+ 
++define KernelPackage/wcn36xx
++  $(call KernelPackage/mac80211/Default)
++  TITLE:=Qualcomm Atheros WCN3660/WCN3680 support
++  DEPENDS+= @TARGET_msm89xx +kmod-mac80211
++  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/ath/wcn36xx/wcn36xx.ko
++  AUTOLOAD:=$(call AutoProbe,wcn36xx)
++endef
++
++define KernelPackage/wcn36xx/description
++This module adds support for the Qualcomm Atheros WCN3660/WCN3680 WLAN block
++used by MSM8916-class platforms.
++endef
++
+ define KernelPackage/ath10k/Default
+   $(call KernelPackage/mac80211/Default)
+   TITLE:=Atheros 802.11ac wireless cards support

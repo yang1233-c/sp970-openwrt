@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Publish TFTP first; RMTFS then publishes and synchronously starts MPSS.
+sleep 1
+exec /usr/sbin/rmtfs -o /tmp/rmtfs-partlabels -P -r -s -v

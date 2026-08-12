@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+/dts-v1/;
+
+/*
+ * SP970_MB_V02 board description for the Linux 6.12 MSM8916 UFI base.
+ * GPIO assignments match the captured legacy DTB and the maintained
+ * x7780/OpenStick-Builder SP970 DTS family.
+ */
+#include "msm8916-ufi.dtsi"
+
+/ {
+	model = "Gexing SP970 4G Modem Stick";
+	compatible = "gexing,sp970", "handsome,openstick", "qcom,msm8916";
+
+	/* A's stock aboot patches /memory exactly like the captured factory DTB. */
+	/delete-node/ memory@80000000;
+	memory {
+		device_type = "memory";
+		reg = <0 0 0 0>;
+	};
+
+	leds {
+		sim_sel: sim-sel {
+			label = "sim:sel";
+			gpios = <&tlmm 114 GPIO_ACTIVE_HIGH>;
+			default-state = "off";
+		};
+	};
+};
+
+&button_restart {
+	gpios = <&tlmm 107 GPIO_ACTIVE_HIGH>;
+};
+
+&led_b {
+	gpios = <&tlmm 28 GPIO_ACTIVE_HIGH>;
+	default-state = "off";
+};
+
+&led_g {
+	gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
+	default-state = "on";
+};
+
+&led_r {
+	gpios = <&tlmm 9 GPIO_ACTIVE_HIGH>;
+	default-state = "off";
+};
+
+&wcnss_iris {
+	compatible = "qcom,wcn3660b";
+};
+
+&button_default {
+	pins = "gpio107";
+	bias-pull-down;
+};
+
+&gpio_leds_default {
+	pins = "gpio9", "gpio10", "gpio28", "gpio114";
+};

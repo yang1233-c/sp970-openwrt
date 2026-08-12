@@ -1,0 +1,95 @@
+# Local runtimes and generated caches
+.venv*/
+**/__pycache__/
+*.py[cod]
+.cache/
+.public-release-path
+
+# Credentials and host-local environment
+.env
+.env.*
+!.env.example
+id_rsa*
+id_ed25519*
+*.pem
+*.key
+*.p12
+*.pfx
+*.ppk
+*known_hosts*
+
+# Downloaded/vendor trees and OpenWrt build caches.  Project-owned scripts,
+# configs, patches and reports remain trackable.
+third_party/
+lk2nd-23.1-source/
+sp970-openwrt-build/source-cache/
+sp970-openwrt-build/.work/
+sp970-openwrt-build/build_dir/
+sp970-openwrt-build/staging_dir/
+sp970-openwrt-build/dl/
+sp970-openwrt-build/bin/
+sp970-openwrt-build/tmp/
+sp970-openwrt-build/feeds/
+
+# Device dumps, staged flash trees and extracted root filesystems
+backups/
+stage[0-9]*/
+A-factory-components/
+A-factory-fastboot-rollback/
+boot-kernels/
+bootpack-test/
+analysis/ufi003-rootfs-config/
+analysis/lk1st-debug/wch-*.js
+logs/
+log.txt
+analysis/ufi003-boot/ramdisk/
+sp970-upstream-audit/pydeps/
+# Upstream audit clones/feeds are reproducible source caches.  Keep only the
+# curated audit reports and extracted DTS evidence in the first-party baseline.
+sp970-upstream-audit/*/
+!sp970-upstream-audit/dtb-extracts/
+!sp970-upstream-audit/dtb-extracts/**
+
+# Large/generated firmware, boot images, archives and board photographs are
+# indexed by manifests/ instead of being stored in Git.
+artifacts/
+*.img
+*.ext4
+*.bin
+*.bin.gz
+*.dtb
+*.dtbo
+*.mbn
+*.elf
+*.raw
+*.sparse
+*.cpio
+*.cpio.gz
+*.gz
+*.xz
+*.zst
+*.zip
+*.7z
+*.tar
+*.tgz
+*.ipk
+*.apk
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.log
+*.pcap
+*.pcapng
+*.ncfx
+
+# Ephemeral host/device probe output.  Curated TXT/JSON/CSV summaries remain
+# trackable, including reports/NCM19-stability-20260811/.
+reports/usb-mode-*.csv
+reports/boot-timing-*.csv
+reports/stock-web/
+reports/A-web-audit/
+reports/youtube-*.info.json
+
+# Junction back to this workspace; following it would recurse forever.
+workspace/

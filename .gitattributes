@@ -1,0 +1,27 @@
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.py text eol=lf
+*.ps1 text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.txt text eol=lf
+
+# Historical acquisition reports include UTF-16LE and byte-exact device logs;
+# baseline verification also hashes selected PS1/JSON/CSV evidence. Preserve the
+# complete reports tree verbatim instead of applying checkout EOL conversion.
+reports/** -text
+
+# These snapshots are content-addressed evidence extracted from immutable images.
+baselines/** -text
+
+# Active OpenWrt rootfs overlay bytes are compared against the frozen runtime.
+sp970-openwrt-build/files/** -text
+
+*.img binary
+*.bin binary
+*.gz binary
+*.dtb binary
+*.pcap binary
+*.pcapng binary

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# LK1ST remains the physical recovery path, so the car image skips the
+# standard four-second OpenWrt failsafe-key window.
+fs_failsafe_wait_timeout=0

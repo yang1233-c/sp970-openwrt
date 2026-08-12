@@ -1,0 +1,19 @@
+#!/bin/sh /etc/rc.common
+START=07
+USE_PROCD=1
+start_service(){
+ modprobe libcomposite||true
+ grep -q ' /sys/kernel/config ' /proc/mounts||mount -t configfs configfs /sys/kernel/config||return 0
+ g=/sys/kernel/config/usb_gadget/sp970
+ e(){ echo "$1" >"$g/$2"; }
+ [ -d "$g" ]&&[ -s "$g/UDC" ]&&e '' UDC
+ mkdir -p "$g/strings/0x409" "$g/configs/c.1/strings/0x409"
+ e 0x05c6 idVendor;e 0xf010 idProduct;e 0x0200 bcdUSB
+ e 0xEF bDeviceClass;e 0x02 bDeviceSubClass;e 0x01 bDeviceProtocol
+ e SP970RAM16 strings/0x409/serialnumber;e OpenWrt strings/0x409/manufacturer;e SP970-NCM16 strings/0x409/product
+ e NCM configs/c.1/strings/0x409/configuration;e 250 configs/c.1/MaxPower
+ n=$g/functions/ncm.usb0;mkdir -p "$n"
+ echo 02:00:00:00:41:01 >"$n/dev_addr";echo 02:00:00:00:41:02 >"$n/host_addr"
+ [ -L "$g/configs/c.1/ncm.usb0" ]||ln -s "$n" "$g/configs/c.1/ncm.usb0"
+ u=$(ls /sys/class/udc|head -n1);[ -n "$u" ]&&e "$u" UDC
+}

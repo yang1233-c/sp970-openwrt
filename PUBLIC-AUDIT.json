@@ -1,0 +1,11 @@
+{
+    "schema":  "q410-public-release-audit-v1",
+    "generated_at":  "2026-08-12T10:33:16.8538550+08:00",
+    "source_commit":  "4994c35acbba88b06fd92bad49a18023e6eb3f4b",
+    "publication_model":  "new-root-commit; private engineering history excluded",
+    "files":  95,
+    "bytes":  325218,
+    "sensitive_findings":  0,
+    "binary_files":  0,
+    "manifest_sha256":  "9AB1482375BEEF3452CAAA30464B683BD3E71744AD858D39EF93B40FDB09561A"
+}
