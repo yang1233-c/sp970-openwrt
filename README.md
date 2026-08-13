@@ -4,6 +4,17 @@ OpenWrt adaptation for the Qualcomm MSM8916-based SP970: persistent boot,
 2.4 GHz access point, USB NCM management, single-owner QMI cellular data,
 three-colour LED state and verified rollback tooling.
 
+## Vehicle-head-unit highlights
+
+- **About 10 seconds to a usable Wi-Fi AP** on the validated SP970 build.
+- **About 30 seconds to cellular internet** in the validated SIM, signal and
+  network environment; the recorded post-fix result was approximately 28 s.
+- **Designed for unattended in-car power cycles:** automatic AP and cellular
+  recovery, software flow offload, durable Wi-Fi configuration writes and
+  clear three-colour connection-state indication.
+- LuCI includes Simplified Chinese and keeps the lightweight management stack;
+  translations are outside the cellular/NAT forwarding path.
+
 ## Repository scope
 
 - [`sp970-openwrt-build/`](sp970-openwrt-build/) ? OpenWrt target, device tree,

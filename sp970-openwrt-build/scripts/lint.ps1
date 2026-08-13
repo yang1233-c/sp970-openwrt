@@ -22,7 +22,8 @@ function Need([string]$p) { if (-not (Test-Path -LiteralPath (Join-Path $Root $p
     'files/usr/sbin/q410-sim-profile',
     'files/etc/config/network', 'files/etc/config/wireless', 'files/etc/config/dhcp',
     'files/etc/hotplug.d/net/95-q410-cellular',
-    'files/etc/config/firewall', 'files/etc/config/system', 'files/etc/uci-defaults/99-sp970'
+    'files/etc/config/firewall', 'files/etc/config/system', 'files/etc/uci-defaults/99-sp970',
+    'files/etc/init.d/sp970-config-sync'
 ) | ForEach-Object { Need $_ }
 
 $dtbFactsPath = Join-Path $Root 'facts/SP970-openstick-dtb.json'
@@ -50,6 +51,14 @@ if ($seed -notmatch '(?m)^# CONFIG_TARGET_ROOTFS_INITRAMFS is not set$') {
 }
 if ($seed -notmatch '(?m)^CONFIG_PACKAGE_qcom-modem-daemons=y$') {
     $fail.Add('persistent image must source-build the rmtfs and tqftpserv daemons')
+}
+if ($seed -notmatch '(?m)^CONFIG_LUCI_LANG_zh_Hans=y$') {
+    $fail.Add('persistent image must include LuCI Simplified Chinese translations')
+}
+$configSync = Get-Content (Join-Path $Root 'files/etc/init.d/sp970-config-sync') -Raw
+if ($configSync -notmatch 'procd_add_config_trigger\s+"config\.change"\s+"wireless"' -or
+    $configSync -notmatch '(?m)^\s*sync\s*$') {
+    $fail.Add('wireless config-change durable-sync service is incomplete')
 }
 $initramfsSeed = Get-Content (Join-Path $Root 'config/initramfs-seed.config') -Raw
 if ($initramfsSeed -notmatch '(?m)^CONFIG_TARGET_ROOTFS_INITRAMFS=y$') {

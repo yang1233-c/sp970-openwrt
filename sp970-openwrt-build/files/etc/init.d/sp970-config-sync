@@ -1,0 +1,24 @@
+#!/bin/sh /etc/rc.common
+
+START=98
+USE_PROCD=1
+
+start_service() {
+	# Also persist first-boot UCI defaults before the user sees the web UI.
+	sync
+}
+
+reload_service() {
+	# A LuCI "Save & Apply" has already committed UCI at this point. Force the
+	# renamed config file and ext4 journal to stable storage before power loss.
+	uci -q commit wireless
+	sync
+	logger -t sp970-config-sync 'wireless configuration flushed to persistent storage'
+}
+
+service_triggers() {
+	procd_open_trigger
+	procd_add_config_trigger "config.change" "wireless" \
+		/etc/init.d/sp970-config-sync reload
+	procd_close_trigger
+}

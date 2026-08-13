@@ -6,7 +6,15 @@ uci -q set system.@system[0].hostname='SP970-CAR'
 uci -q set wireless.radio0.disabled='0'
 uci -q set wireless.radio0.beacon_int='100'
 uci -q set wireless.radio0.dtim_period='2'
+uci -q set luci.main.lang='zh_cn'
 uci -q commit system
 uci -q commit wireless
+uci -q commit luci
+
+# LuCI commits configuration before emitting the config.change event. This
+# zero-resident service catches that event and flushes the ext4 writeback cache,
+# closing the power-cut window in which a newly saved WPA key could be lost.
+/etc/init.d/sp970-config-sync enable
+/etc/init.d/sp970-config-sync start
 
 exit 0
