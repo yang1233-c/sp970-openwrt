@@ -8,6 +8,8 @@ local package definitions for the SP970/MSM8916 target.
 - MSM8916 target, kernel configuration and SP970 device tree.
 - Wi-Fi AP, DHCP/NAT and USB NCM management overlay.
 - `q410qmi`, a source-built single-owner QMI data path for the onboard modem.
+- Source-built `rmtfs` and `tqftpserv` daemons pinned under
+  `package/utils/qcom-modem-daemons`; generated ELF files stay out of Git.
 - LED policy: red heartbeat, green AP-ready and blue cellular-connected.
 - Local firmware packaging hooks. Captured modem/WLAN firmware is deliberately
   excluded from Git.
@@ -55,3 +57,21 @@ neighbouring BSSIDs and local paths are excluded from the public release.
 
 Persistent installation changes device partitions. Preserve verified preimages
 and readback hashes before deployment; see [`../docs/ROLLBACK.md`](../docs/ROLLBACK.md).
+
+## Performance validation
+
+The target kernel keeps the MSM8916 A53 PLL and APCS clocks built in so
+`cpufreq-dt` can register.  The firewall defaults enable software flow offload
+for forwarded LAN/USB-to-cellular traffic; hardware flow offload stays off.
+
+To package a RAM-only kernel that boots the existing persistent ext4 rootfs,
+without writing p12 or p14:
+
+```powershell
+$env:Q410_OPENWRT_TREE = '/home/USER/q410/openwrt-25.12.5'
+.\scripts\package-persistent-root-ramkernel-from-wsl.ps1
+```
+
+The script asserts CPUFreq, ext4/devtmpfs, WWAN support, built-in WCN firmware,
+the deployed appended-DTB layout, matching DTB hash and the 16 MiB fastboot
+size gate before publishing the image and checksums.

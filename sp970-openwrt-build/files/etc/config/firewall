@@ -3,6 +3,9 @@ config defaults
 	option input 'ACCEPT'
 	option output 'ACCEPT'
 	option forward 'REJECT'
+	# MSM8916 has no supported hardware offload path here.  Software flow
+	# offload accelerates established LAN/USB-to-cellular forwarded flows.
+	option flow_offloading '1'
 
 config zone
 	option name 'lan'

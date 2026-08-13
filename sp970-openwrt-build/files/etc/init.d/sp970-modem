@@ -34,5 +34,7 @@ start_service() {
 }
 
 stop_service() {
-	/usr/sbin/sp970-modem-led off >/dev/null 2>&1 || true
+	# procd stops the tqftp/rmtfs instances.  sp970-modem-led is a watchdog
+	# daemon, not a one-shot LED command; invoking it here blocks shutdown.
+	return 0
 }

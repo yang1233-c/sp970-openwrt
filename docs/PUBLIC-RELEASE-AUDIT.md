@@ -1,6 +1,6 @@
 # Public release security audit
 
-Audit date: 2026-08-12
+Audit date: 2026-08-13
 
 ## Publication model
 
@@ -14,7 +14,8 @@ history is not an ancestor and is not pushed.
 - SIM identifiers and raw UIM/NAS reports.
 - Neighbouring Wi-Fi SSIDs/BSSIDs and packet/RF captures.
 - Windows usernames, personal absolute paths and private host inventories.
-- Factory dumps, modem NV content, preimages, firmware and generated images.
+- Factory dumps, QCN containers, modem NV content, preimages, firmware and
+  generated images.
 - Experimental logs, terminal transcripts and cached third-party webpages.
 - Unstripped ARM64 binaries containing compiler build paths.
 
@@ -28,3 +29,6 @@ are enumerated separately.
 
 The public release contains source for both `q410qmi` executables and an OpenWrt
 package definition so the omitted binaries can be rebuilt from the pinned tree.
+QCN work is represented only by a redacted field map, container byte count and
+donor SHA-256; current-device identities, calibration payloads and rollback
+preimages remain in the private artifact archive.

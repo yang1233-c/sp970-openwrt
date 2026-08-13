@@ -8,7 +8,7 @@ hardware revision and a minimal reproduction.
 
 ## Repository hygiene
 
-Do not attach factory dumps, modem NV content, rollback preimages, SIM
+Do not attach factory dumps, QCN containers, modem NV content, rollback preimages, SIM
 identifiers, device serials, access tokens, SSH keys, RF captures or private
 network inventories to issues or pull requests. Redact host usernames and local
 paths from logs.

@@ -1,0 +1,45 @@
+{
+  "schema": "q410-public-state-v4",
+  "generated_at": "2026-08-13T12:40:00+08:00",
+  "board": "SP970 / MSM8916 / 512 MiB reference fixture",
+  "status": "PERSISTENT_OPENWRT_BROADNET_REBOOT_PASS",
+  "boot": {
+    "root": "/dev/mmcblk0p14",
+    "filesystem": "ext4 rw",
+    "kernel": "Linux 6.12.94 aarch64",
+    "cpufreq_driver": "cpufreq-dt",
+    "cpuinfo_max_khz": 998400
+  },
+  "network": {
+    "usb_management": "169.254.41.129",
+    "wifi_ap": "SP970-CAR",
+    "cellular_protocol": "q410qmi",
+    "sim_profile": "automatic AID and APN selection",
+    "validated_plmn": "46015",
+    "validated_rat": "LTE",
+    "validated_band": "B3",
+    "validated_earfcn": 1300,
+    "software_flow_offload": true
+  },
+  "modem": {
+    "remoteproc": "running",
+    "rmtfs_daemons": 1,
+    "tqftpserv_daemons": 1,
+    "single_qmi_owner": true,
+    "automatic_cellular_seconds_observed": 28,
+    "nv_payloads_in_git": false,
+    "nv_hashes_redacted": true
+  },
+  "evidence": {
+    "status": "docs/STATUS.md",
+    "rollback": "docs/ROLLBACK.md",
+    "qcn_policy": "docs/2026-08-13-SP970-QCN-policy-and-redaction.md",
+    "lessons": "docs/2026-08-13-SP970-OpenWrt-QCN-lessons.md"
+  },
+  "remaining_release_gates": [
+    "20 physical ignition cycles",
+    "72-hour soak and sudden-power-loss recovery",
+    "end-to-end Wi-Fi client NAT validation",
+    "investigate observed cellular packet loss without adding a second QMI owner"
+  ]
+}

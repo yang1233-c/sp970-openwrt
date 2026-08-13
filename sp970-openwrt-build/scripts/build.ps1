@@ -25,6 +25,7 @@ function Stage-Tree([string]$relative) {
 Stage-Tree 'target/linux/msm89xx'
 Stage-Tree 'package/firmware/sp970-firmware'
 Stage-Tree 'package/network/utils/q410qmi'
+Stage-Tree 'package/utils/qcom-modem-daemons'
 Stage-Tree 'files'
 
 $openWrtPatch = Join-Path $Root 'patches/openwrt/0001-mac80211-add-wcn36xx-package.patch'

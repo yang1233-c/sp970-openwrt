@@ -6,23 +6,24 @@ three-colour LED state and verified rollback tooling.
 
 ## Repository scope
 
-- [`sp970-openwrt-build/`](sp970-openwrt-build/) — OpenWrt target, device tree,
+- [`sp970-openwrt-build/`](sp970-openwrt-build/) ? OpenWrt target, device tree,
   configuration, rootfs overlay and source-built `q410qmi` package.
-- [`tools/`](tools/) — selected build, deployment and cellular integration
+- [`tools/`](tools/) ? selected build, deployment and cellular integration
   sources/scripts.
-- [`baselines/`](baselines/) — source overlays recovered from immutable NCM16
+- [`baselines/`](baselines/) ? source overlays recovered from immutable NCM16
   and NCM19 comparison images; the images themselves are excluded.
-- [`docs/STATUS.md`](docs/STATUS.md) — current validated result and remaining
+- [`docs/STATUS.md`](docs/STATUS.md) ? current validated result and remaining
   release gates.
-- [`docs/ROLLBACK.md`](docs/ROLLBACK.md) — rollback model and required checks.
+- [`docs/ROLLBACK.md`](docs/ROLLBACK.md) ? rollback model and required checks.
 
 ## Current result
 
 The tested persistent candidate boots from eMMC, starts `SP970-CAR`, activates
-a slot-1 USIM and establishes a Raw-IP QMI data session automatically. A cold
-boot observation reached cellular network availability in approximately
-24 seconds. Public IPv4 and HTTP tests passed; physical modem-NV partition
-hashes remained unchanged.
+a slot-1 USIM and establishes a Raw-IP QMI data session automatically. The
+fixed kernel registers CPUFreq, routed traffic uses software flow offload, and
+`rmtfs`/`tqftpserv` are rebuilt from pinned source. A post-fix reboot reached
+cellular availability in approximately 28 seconds on PLMN 46015, LTE B3,
+EARFCN 1300. Physical modem-NV partition hashes remained unchanged.
 
 This is an engineering port rather than a universal image. Board revisions,
 partition maps and firmware provenance must be verified independently.
@@ -31,7 +32,7 @@ partition maps and firmware provenance must be verified independently.
 
 The repository intentionally excludes:
 
-- factory/partition dumps and rollback preimages;
+- factory/partition dumps, QCN containers and rollback preimages;
 - captured WCNSS/MPSS firmware;
 - boot/rootfs images and archives;
 - SIM identifiers, device serials and raw RF scan results;

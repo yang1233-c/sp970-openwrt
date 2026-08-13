@@ -1,0 +1,31 @@
+#!/bin/sh
+# BAM-DMUX appears after netifd's initial interface setup pass.  Retry the
+# cellular protocol once the physical data and QMI control devices both exist.
+
+[ "${ACTION:-}" = add ] || exit 0
+[ "${INTERFACE:-}" = wwan0 ] || exit 0
+
+(
+	lock=/tmp/q410-cellular-hotplug.lock
+	mkdir "$lock" 2>/dev/null || exit 0
+	trap 'rmdir "$lock"' EXIT HUP INT TERM
+
+	i=0
+	while { [ ! -e /sys/class/net/wwan0 ] || [ ! -c /dev/wwan0qmi0 ]; } &&
+			[ "$i" -lt 10 ]; do
+		sleep 1
+		i=$((i + 1))
+	done
+	[ -e /sys/class/net/wwan0 ] && [ -c /dev/wwan0qmi0 ] || exit 0
+
+	status="$(ubus call network.interface.cellular status 2>/dev/null || true)"
+	printf '%s\n' "$status" | grep -q '"up": true' && exit 0
+
+	logger -t q410-cellular-hotplug \
+		"wwan0 enumerated after ${i}s; retrying cellular interface"
+	ifdown cellular 2>/dev/null || true
+	sleep 1
+	ifup cellular
+) </dev/null >/dev/null 2>&1 &
+
+exit 0

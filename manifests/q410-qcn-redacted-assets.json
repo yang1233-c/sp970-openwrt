@@ -1,0 +1,28 @@
+{
+  "schema": "q410-qcn-redacted-assets-v1",
+  "generated_at": "2026-08-13T13:10:00+08:00",
+  "payload_policy": {
+    "qcn_in_git": false,
+    "current_device_nv_in_git": false,
+    "rollback_preimages_in_git": false,
+    "representation": "redacted donor field map and content hash"
+  },
+  "donor_container": {
+    "bytes": 570880,
+    "sha256": "FD06D09D7D358C2956D4FDB8F802DFEFB381E53982AF3BE296AF1BA5C8E2A1BB",
+    "source_family": "different MSM8916 product family",
+    "whole_container_write": false
+  },
+  "reviewed_policy_fields": {
+    "NV6828": "0x000001E000000095",
+    "NV6829": "0x0",
+    "lte_band_bits": [1, 3, 5, 8, 38, 39, 40, 41],
+    "update_band_range_hex": "01 00 29 00 50 A0 18 A1 00 00 00 00 00 00 00 00 00 00 00",
+    "band_priority_list_hex": "03 01 05",
+    "policyman_rat_mask": "LTE portion agrees with NV6828"
+  },
+  "documentation": [
+    "docs/2026-08-13-SP970-QCN-policy-and-redaction.md",
+    "docs/2026-08-13-SP970-OpenWrt-QCN-lessons.md"
+  ]
+}

@@ -11,6 +11,11 @@ This project integrates or adapts material from:
   — runtime APIs used by the `q410qmi` tools; upstream LGPL licensing applies
   to those libraries.
 
+- [qrtr](https://github.com/linux-msm/qrtr),
+  [rmtfs](https://github.com/andersson/rmtfs) and
+  [tqftpserv](https://github.com/linux-msm/tqftpserv) — pinned source snapshots
+  used to build the modem file-service daemons; BSD-3-Clause licensing applies.
+
 Captured factory images, Qualcomm firmware, device dumps and third-party
 download archives are not distributed by this repository. Their hashes may be
 documented solely to identify local build inputs.

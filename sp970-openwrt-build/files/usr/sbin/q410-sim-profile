@@ -1,0 +1,83 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+set -u
+
+QMICLI="${QMICLI:-/usr/bin/qmicli}"
+
+usage() {
+	echo "usage: $0 aid|apn|profile QMI_DEVICE" >&2
+	exit 2
+}
+
+get_aid() {
+	local device="$1" output aid
+	output="$($QMICLI -d "$device" --uim-get-card-status 2>&1)" || {
+		printf '%s\n' "$output" >&2
+		return 1
+	}
+	aid="$(printf '%s\n' "$output" | awk '
+		/Application type:/ { is_usim = ($0 ~ /usim/) }
+		/Application ID:/ && is_usim {
+			if (getline > 0) {
+				gsub(/[^0-9A-Fa-f]/, "")
+				print toupper($0)
+				exit
+			}
+		}
+	')"
+	case "$aid" in
+		''|*[!0-9A-F]*) echo 'USIM AID detection failed' >&2; return 1 ;;
+	esac
+	[ "$(( ${#aid} % 2 ))" -eq 0 ] || {
+		echo 'USIM AID has an odd number of hex digits' >&2
+		return 1
+	}
+	printf '%s\n' "$aid"
+}
+
+get_imsi() {
+	local device="$1" output imsi
+	output="$($QMICLI -d "$device" --dms-uim-get-imsi 2>&1)" || {
+		printf '%s\n' "$output" >&2
+		return 1
+	}
+	imsi="$(printf '%s\n' "$output" | awk -F "'" '/IMSI:/ { print $2; exit }')"
+	case "$imsi" in
+		[0-9][0-9][0-9][0-9][0-9]*) printf '%s\n' "$imsi" ;;
+		*) echo 'IMSI detection failed' >&2; return 1 ;;
+	esac
+}
+
+apn_for_imsi() {
+	case "$1" in
+		46015*) echo cbnet ;;
+		46003*|46005*|46011*|46012*) echo ctnet ;;
+		46001*|46006*|46009*) echo 3gnet ;;
+		46000*|46002*|46004*|46007*|46008*) echo cmnet ;;
+		*) echo "unsupported IMSI prefix: ${1%${1#?????}}" >&2; return 1 ;;
+	esac
+}
+
+[ "$#" -eq 2 ] || usage
+action="$1"
+device="$2"
+
+case "$action" in
+	aid)
+		get_aid "$device"
+		;;
+	apn)
+		imsi="$(get_imsi "$device")" || exit 1
+		apn_for_imsi "$imsi"
+		;;
+	profile)
+		aid="$(get_aid "$device")" || exit 1
+		imsi="$(get_imsi "$device")" || exit 1
+		apn="$(apn_for_imsi "$imsi")" || exit 1
+		# Publish only the routing prefix: retaining the subscriber identifier in
+		# service logs adds no value to netifd and makes diagnostics sensitive.
+		printf 'AID=%s\nMCCMNC=%s\nAPN=%s\n' \
+			"$aid" "${imsi%${imsi#?????}}" "$apn"
+		;;
+	*) usage ;;
+esac

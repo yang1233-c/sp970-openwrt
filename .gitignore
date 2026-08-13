@@ -82,6 +82,24 @@ artifacts/
 *.pcap
 *.pcapng
 *.ncfx
+*.qcn
+*.xqcn
+
+# Device-specific modem persistence and identity-bearing backups.  Commit a
+# redacted field map plus byte count/SHA-256 manifest, never the payload.
+**/modemst1*
+**/modemst2*
+**/modem_fs1*
+**/modem_fs2*
+**/modem_fsc*
+**/modem_fsg*
+**/fsc*.bin
+**/fsg*.bin
+
+# Local copies of source-built modem helper ELF files.  Public builds use the
+# pinned package/utils/qcom-modem-daemons source snapshot instead.
+sp970-openwrt-build/files/usr/sbin/rmtfs
+sp970-openwrt-build/files/usr/bin/tqftpserv
 
 # Ephemeral host/device probe output.  Curated TXT/JSON/CSV summaries remain
 # trackable, including reports/NCM19-stability-20260811/.

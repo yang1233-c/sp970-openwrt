@@ -4,6 +4,7 @@
 [ -x /usr/sbin/q410-qmi-uim-provision ] || exit 0
 [ -x /usr/sbin/q410-qmi-wds-connect ] || exit 0
 [ -x /usr/sbin/q410-wds-supervisor ] || exit 0
+[ -x /usr/sbin/q410-sim-profile ] || exit 0
 [ -x /usr/bin/qmicli ] || exit 0
 
 . /lib/functions.sh
@@ -13,10 +14,22 @@ init_proto "$@"
 Q410_WDS_STATE=/tmp/q410-wds-ready.env
 Q410_LED_STATE=/run/sp970-cellular-state
 
+q410qmi_write_led_state() {
+	local state="$1"
+	local sim="$2"
+	local reason="${3:-none}"
+	local tmp="${Q410_LED_STATE}.$$"
+
+	{
+		printf 'STATE=%s\n' "$state"
+		printf 'SIM=%s\n' "$sim"
+		printf 'REASON=%s\n' "$reason"
+	} >"$tmp" && mv "$tmp" "$Q410_LED_STATE"
+}
+
 proto_q410qmi_init_config() {
 	available=1
-	no_device=1
-	proto_config_add_string device
+	proto_config_add_string qmi_device
 	proto_config_add_string data_device
 	proto_config_add_string apn
 	proto_config_add_string aid
@@ -27,23 +40,44 @@ proto_q410qmi_init_config() {
 q410qmi_fail() {
 	local interface="$1"
 	local reason="$2"
+	local led_state=searching
+	local sim_state=unknown
+
+	case "$reason" in
+		QMI_DEVICE_MISSING|DMS_ONLINE_FAILED)
+			led_state=modem_absent
+			;;
+		SIM_*|UIM_*)
+			led_state=sim_absent
+			sim_state=absent
+			;;
+		APN_*|WDS_*)
+			led_state=registered_no_data
+			sim_state=present
+			;;
+	esac
+	q410qmi_write_led_state "$led_state" "$sim_state" "$reason"
 	logger -t q410qmi "${interface}: ${reason}"
 	proto_notify_error "$interface" "$reason"
+	case "$reason" in
+		UIM_*|SIM_*|APN_*) proto_block_restart "$interface" ;;
+	esac
 	proto_kill_command "$interface" 15
-	rm -f "$Q410_WDS_STATE" "$Q410_LED_STATE"
+	rm -f "$Q410_WDS_STATE"
 	return 1
 }
 
 proto_q410qmi_setup() {
 	local interface="$1"
-	local device data_device apn aid metric
+	local netifd_device="$2"
+	local device qmi_device data_device apn aid metric
 	local i mode_output nas_output dms_ready registered
 
-	json_get_vars device data_device apn aid metric
-	device="${device:-/dev/wwan0qmi0}"
-	data_device="${data_device:-wwan0}"
-	apn="${apn:-cbnet}"
-	aid="${aid:-A0000000871002FF86FFFF89FFFFFFFF}"
+	json_get_vars qmi_device data_device apn aid metric
+	device="${qmi_device:-/dev/wwan0qmi0}"
+	data_device="${data_device:-${netifd_device:-wwan0}}"
+	apn="${apn:-auto}"
+	aid="${aid:-auto}"
 	metric="${metric:-10}"
 
 	i=0
@@ -61,7 +95,8 @@ proto_q410qmi_setup() {
 		return
 	}
 
-	rm -f "$Q410_WDS_STATE" "$Q410_LED_STATE"
+	rm -f "$Q410_WDS_STATE"
+	q410qmi_write_led_state initializing unknown SETUP
 	ip addr flush dev "$data_device"
 	ip link set "$data_device" up || {
 		q410qmi_fail "$interface" DATA_DEVICE_OPEN_FAILED
@@ -86,6 +121,15 @@ proto_q410qmi_setup() {
 		return
 	}
 
+	if [ "$aid" = auto ]; then
+		aid="$(/usr/sbin/q410-sim-profile aid "$device")" || {
+			q410qmi_fail "$interface" SIM_AID_DETECT_FAILED
+			return
+		}
+		logger -t q410qmi "${interface}: detected USIM AID"
+	fi
+	q410qmi_write_led_state searching present NAS_SEARCH
+
 	registered=0
 	i=0
 	while [ "$i" -lt 45 ]; do
@@ -96,12 +140,11 @@ proto_q410qmi_setup() {
 			}
 		fi
 		nas_output="$(qmicli -d "$device" --nas-get-serving-system 2>&1 || true)"
-		case "$nas_output" in
-			*"Registration state: 'registered'"*"PS: 'attached'"*)
-				registered=1
-				break
-				;;
-		esac
+		if printf '%s\n' "$nas_output" | grep -Fq "Registration state: 'registered'" &&
+				printf '%s\n' "$nas_output" | grep -Fq "PS: 'attached'"; then
+			registered=1
+			break
+		fi
 		sleep 2
 		i=$((i + 2))
 	done
@@ -109,6 +152,15 @@ proto_q410qmi_setup() {
 		q410qmi_fail "$interface" NAS_REGISTRATION_TIMEOUT
 		return
 	}
+	q410qmi_write_led_state registered_no_data present PS_ATTACHED
+
+	if [ "$apn" = auto ]; then
+		apn="$(/usr/sbin/q410-sim-profile apn "$device")" || {
+			q410qmi_fail "$interface" APN_DETECT_FAILED
+			return
+		}
+		logger -t q410qmi "${interface}: selected APN ${apn} from IMSI"
+	fi
 
 	proto_run_command "$interface" \
 		/usr/sbin/q410-wds-supervisor "$device" "$apn"
@@ -147,6 +199,7 @@ proto_q410qmi_setup() {
 	{
 		echo 'STATE=connected'
 		echo 'SIM=present'
+		echo 'REASON=WDS_CONNECTED'
 		echo "IFACE=$data_device"
 		echo "APN=$apn"
 		echo "IPV4=$IPV4"
@@ -159,7 +212,8 @@ proto_q410qmi_setup() {
 proto_q410qmi_teardown() {
 	local interface="$1"
 	proto_kill_command "$interface" 15
-	rm -f "$Q410_WDS_STATE" "$Q410_LED_STATE"
+	rm -f "$Q410_WDS_STATE"
+	q410qmi_write_led_state modem_absent unknown TEARDOWN
 }
 
 add_protocol q410qmi
